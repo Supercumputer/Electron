@@ -1,0 +1,22 @@
+{
+  "name": "electron_1",
+  "version": "1.0.0",
+  "description": "",
+  "main": "main.js",
+  "scripts": {
+    "start": "nodemon --exec electron .",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "electron": "^32.0.1"
+  },
+  "dependencies": {
+    "jimp": "^0.22.12",
+    "nodemon": "^3.1.4",
+    "ws": "^8.18.0",
+    "xmldom": "^0.6.0",
+    "xpath": "^0.0.34"
+  }
+}

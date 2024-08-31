@@ -1,0 +1,462 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="Content-Security-Policy" content="script-src 'self' 'unsafe-inline';">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css" rel="stylesheet"
+        integrity="sha384-EVSTQN3/azprG1Anm3QDgpJLIm9Nao0Yz1ztcQTwFspd3yD65VohhpuuCOmLASjC" crossorigin="anonymous">
+    <title>Electron ADB App</title>
+</head>
+
+<body>
+    <h1>Mở ứng dụng trên điện thoại qua ADB</h1>
+
+    <button type="button" class="btn btn-outline-info" id="listDevices">List Devices</button>
+    <pre id="deviceList"></pre>
+
+    <button id="start-scrcpy">Start ws-scrcpy</button>
+    <button id="stop-scrcpy">Stop ws-scrcpy</button>
+
+    <div>
+        <span>PackageName: </span>
+        <input id="packageName" type="text" class="form-control" value="com.android.vending"
+            placeholder="Nhập tên package của app" />
+    </div>
+
+    <div class="mb-3">
+        <span>File Apk: </span>
+        <input type="text" class="form-control" id="file" name="file_apk">
+    </div>
+
+    <b class="mb-1">Transfer file: </b>
+    <div class="p-3 border rounded">
+        <div class="mb-3">
+            <input type="radio" name="transferService" id="pull" value="pull" checked>
+            <label for="pull">pull</label>
+            <input type="radio" name="transferService" id="push" value="push">
+            <label for="push">push</label>
+        </div>
+        <div class="mb-3 d-flex flex-column gap-2">
+            <label for="">LocalFilePath</label>
+            <input type="text" class="form-control" id="fileInput" name="local" />
+            <label for="">RemoteFilePath</label>
+            <input type="text" class="form-control" id="fileInput" name="remote" />
+        </div>
+    </div>
+
+    <b class="mb-0">Touch</b>
+    <div class="p-3 border rounded">
+        <div class="mb-3">
+            <label for="">Xpath</label>
+            <input type="text" name="xpath" class="form-control">
+        </div>
+
+        <div class="mb-3">
+            <label for="">Timeout (seconds)</label>
+            <input type="text" name="timeout" class="form-control">
+        </div>
+
+        <div class="mb-3">
+            <label for="">Touch type</label>
+            <input type="radio" value="Normal" name="touchType" checked>
+            <label for="">Normal</label>
+            <input type="radio" value="Double" name="touchType">
+            <label for="">Double</label>
+            <input type="radio" value="Long" name="touchType">
+            <label for="">Long</label>
+        </div>
+
+        <div class="mb-3">
+            <label for="">Delay (milliseconds)</label>
+            <input type="text" name="delay" class="form-control">
+        </div>
+    </div>
+
+    <b class="mb-0 mt-3">Swipe/Scroll</b>
+    <div class="p-3 border rounded">
+        <div class="mb-3">
+            <input type="radio" name="mode" id="Simple" value="simple" checked>
+            <label for="Simple">Simple</label>
+            <input type="radio" name="mode" id="custom" value="custom">
+            <label for="custom">Custom</label>
+        </div>
+
+        <div class="mb-3">
+            <label for="">Direction</label>
+            <input type="radio" value="Up" name="Direction" checked>
+            <label for="">Up</label>
+            <input type="radio" value="Down" name="Direction">
+            <label for="">Down</label>
+            <input type="radio" value="Left" name="Direction">
+            <label for="">Left</label>
+            <input type="radio" value="Right" name="Direction">
+            <label for="">Right</label>
+        </div>
+
+        <div class="mb-3 flex-1">
+            <div class="d-flex gap-2 ">
+                <div>
+                    <label for="">Start X</label>
+                    <input type="text" class="form-control" name="startx">
+                </div>
+                <div>
+                    <label for="">Start Y</label>
+                    <input type="text" class="form-control" name="starty">
+                </div>
+            </div>
+
+            <div class="d-flex gap-2 ">
+                <div>
+                    <label for="">End X</label>
+                    <input type="text" class="form-control" name="endx">
+                </div>
+                <div>
+                    <label for="">End Y</label>
+                    <input type="text" class="form-control" name="endy">
+                </div>
+            </div>
+            <div>
+                <label for="">Duration (milliseconds) không có direction</label>
+                <input type="text" class="form-control" name="duration">
+            </div>
+
+        </div>
+
+    </div>
+
+    <b class="mb-0 mt-3">Type text</b>
+    <div class="p-3 border rounded">
+        <div class="mb-3">
+            <label for="Simple">Selector</label>
+            <input type="text" name="selector" class="form-control">
+        </div>
+
+        <div class="mb-3">
+            <label for="Simple">Timeout (seconds)</label>
+            <input type="text" name="seconds" class="form-control">
+        </div>
+
+        <div class="mb-3">
+            <label for="Simple">Text</label>
+            <textarea name="text" id="" class="form-control"></textarea>
+        </div>
+
+    </div>
+
+    <b class="mb-0 mt-3">Press key</b>
+    <div class="p-3 border rounded">
+        <select id="keyCode" class="form-control">
+            <option value="">--Select Key--</option>
+            <option value="3">Home</option>
+            <option value="4">Back</option>
+            <option value="24">Volume Up</option>
+            <option value="25">Volume Down</option>
+            <option value="26">Power</option>
+            <option value="27">Camera</option>
+            <option value="28">Clear</option>
+            <option value="29">Asterisk</option>
+            <option value="30">Hash</option>
+            <option value="31">Call</option>
+            <option value="32">End Call</option>
+            <option value="33">Volume Mute</option>
+            <option value="34">Media Play</option>
+            <option value="35">Media Pause</option>
+            <option value="36">Media Stop</option>
+            <option value="37">Media Next</option>
+            <option value="38">Media Previous</option>
+            <option value="39">Media Fast Forward</option>
+            <option value="40">Media Rewind</option>
+            <option value="41">Mute</option>
+            <option value="42">Volume Up / Down</option>
+            <option value="43">Navigation Up</option>
+            <option value="44">Navigation Down</option>
+            <option value="45">Navigation Left</option>
+            <option value="46">Navigation Right</option>
+        </select>
+    </div>
+
+    <b class="mb-1">Action device: </b>
+    <div>
+        <input type="radio" name="action" id="lock" value="lock" checked>
+        <label for="lock">Lock</label>
+        <input type="radio" name="action" id="unlock" value="unlock">
+        <label for="unlock">Unlock</label>
+    </div>
+
+    <b class="mb-1">Toggle service:</b>
+    <div>
+        <input type="radio" name="service" id="AirplaneMode" value="AirplaneMode" checked>
+        <label for="lock">AirplaneMode</label>
+
+        <input type="radio" name="service" id="Wifi" value="Wifi">
+        <label for="Wifi">Wifi</label>
+
+        <input type="radio" name="service" id="3g/4g" value="3g/4g">
+        <label for="3g/4g">3g/4g</label>
+
+        <input type="radio" name="service" id="Location" value="Location">
+        <label for="Location">Location</label>
+
+    </div>
+
+    <b class="mb-1">Screenshot:</b>
+    <div class="p-3 border rounded">
+        <div class="mb-3">
+            <label for="Simple">File name</label>
+            <input type="text" name="fileName" class="form-control">
+        </div>
+
+        <div class="mb-3">
+            <label for="Simple">Folder output</label>
+            <input type="text" name="folderOutput" class="form-control">
+        </div>
+
+        <div class="mb-3">
+            <input type="checkbox" name="crop">
+            <label for="crop">crop</label>
+        </div>
+
+        <div class="mb-3 flex-1">
+            <div class="d-flex gap-2 ">
+                <div>
+                    <label for="">Start X</label>
+                    <input type="text" class="form-control" name="stx">
+                </div>
+                <div>
+                    <label for="">Start Y</label>
+                    <input type="text" class="form-control" name="sty">
+                </div>
+            </div>
+
+            <div class="d-flex gap-2 ">
+                <div>
+                    <label for="">End X</label>
+                    <input type="text" class="form-control" name="enx">
+                </div>
+                <div>
+                    <label for="">End Y</label>
+                    <input type="text" class="form-control" name="eny">
+                </div>
+            </div>
+
+        </div>
+
+        <div class="mb-3">
+            <label for="Simple">Output variable (base64)</label>
+            <input type="text" name="outputVariable" class="form-control">
+        </div>
+
+    </div>
+
+    <p id="result" class="mb-1 border p-2"></p>
+
+    <b class="">Navigation</b>
+    <div class="d-flex gap-2 mb-2">
+        <button type="button" class="btn btn-outline-primary" id="back">Press Back</button>
+        <button type="button" class="btn btn-outline-secondary" id="home">Press Home</button>
+        <button type="button" class="btn btn-outline-success" id="menu">Press Menu</button>
+    </div>
+
+    <p class="">System</p>
+    <div class="d-flex gap-2 flex-wrap mb-2">
+        <button type="button" class="btn btn-outline-primary" id="start">Start App</button>
+        <button type="button" class="btn btn-outline-secondary" id="stop">Stop App</button>
+        <button type="button" class="btn btn-outline-success" id="install">Install App</button>
+        <button type="button" class="btn btn-outline-success" id="uninstall">Uninstall App</button>
+        <button type="button" class="btn btn-outline-success" id="isinstall">Isinstall App</button>
+        <button type="button" class="btn btn-outline-success" id="deviceAction">Device Actions</button>
+        <button type="button" class="btn btn-outline-success" id="toggleService">Toggle Service</button>
+        <button type="button" class="btn btn-outline-success" id="transferService">Transfer Service</button>
+    </div>
+
+    <p class="">Touch</p>
+    <div class="d-flex gap-2 flex-wrap mb-2">
+        <button type="button" class="btn btn-outline-primary" id="touch">Touch</button>
+        <button type="button" class="btn btn-outline-primary" id="Swipe/Scroll">Swipe/Scroll</button>
+    </div>
+
+    <p class="">SCREEN</p>
+    <div class="d-flex gap-2 flex-wrap mb-2">
+        <button type="button" class="btn btn-outline-primary" id="screenshot">Screenshot</button>
+    </div>
+
+    <p class="">KEYBOARD</p>
+    <div class="d-flex gap-2 flex-wrap mb-2">
+        <button type="button" class="btn btn-outline-primary" id="pressKey">Press key</button>
+        <button type="button" class="btn btn-outline-primary" id="typeText">Type text</button>
+
+    </div>
+
+    <script>
+
+        document.getElementById('listDevices').addEventListener('click', () => {
+            window.electronAPI.getDeviceList()
+                .then(devices => {
+                    document.getElementById('deviceList').textContent = devices;
+                })
+                .catch(err => {
+                    document.getElementById('deviceList').textContent = `Lỗi: ${err.message}`;
+                });
+        });
+
+
+        document.getElementById('start-scrcpy').addEventListener('click', () => {
+            window.electronAPI.onOpenScreenApp();
+        });
+
+        document.getElementById('stop-scrcpy').addEventListener('click', () => {
+            window.electronAPI.onCloseScreenApp();
+        });
+
+        document.getElementById('start').addEventListener('click', () => {
+            const packageName = document.getElementById('packageName').value;
+            window.electronAPI.sendOpenApp(packageName);
+        });
+
+        document.getElementById('stop').addEventListener('click', () => {
+            const packageName = document.getElementById('packageName').value;
+            window.electronAPI.sendCloseApp(packageName);
+        });
+
+        document.getElementById('uninstall').addEventListener('click', () => {
+            const packageName = document.getElementById('packageName').value;
+            window.electronAPI.sendUnInstallApp(packageName);
+        });
+
+        document.getElementById('isinstall').addEventListener('click', () => {
+            const packageName = document.getElementById('packageName').value;
+            window.electronAPI.sendIsInstallApp(packageName);
+        });
+
+        document.getElementById('deviceAction').addEventListener('click', () => {
+            const action = document.querySelector('input[name="action"]:checked').value;
+            window.electronAPI.sendActionApp(action);
+        });
+
+        document.getElementById('toggleService').addEventListener('click', () => {
+            const service = document.querySelector('input[name="service"]:checked').value;
+            window.electronAPI.sendToggleApp(service);
+        });
+
+        document.getElementById('pressKey').addEventListener('click', () => {
+            let keyCode = document.querySelector('#keyCode').value;
+            window.electronAPI.sendPressKeyApp(keyCode);
+        });
+
+        document.getElementById('touch').addEventListener('click', () => {
+            let xpath = document.querySelector('input[name="xpath"]').value;
+            let timeOut = document.querySelector('input[name="timeout"]').value;
+            let touchType = document.querySelector('input[name="touchType"]:checked').value;
+            let delay = document.querySelector('input[name="delay"]').value;
+            window.electronAPI.sendTouchApp(xpath, timeOut, touchType, delay);
+        });
+
+        document.getElementById('Swipe/Scroll').addEventListener('click', () => {
+
+            let Mode = document.querySelector('input[name="mode"]:checked').value;
+
+            if (Mode == "simple") {
+                let direction = document.querySelector('input[name="Direction"]:checked').value;
+                window.electronAPI.sendSwipeSimpleApp(direction);
+
+            } else {
+                let startx = document.querySelector('input[name="startx"]').value;
+                let starty = document.querySelector('input[name="starty"]').value;
+                let endx = document.querySelector('input[name="endx"]').value;
+                let endy = document.querySelector('input[name="endy"]').value;
+                let duration = document.querySelector('input[name="duration"]').value;
+                window.electronAPI.sendSwipeCustomApp(startx, starty, endx, endy, duration);
+            }
+
+        });
+
+        document.getElementById('screenshot').addEventListener('click', () => {
+            let options = {}
+
+            let fileName = document.querySelector('input[name="fileName"]').value;
+            let crop = document.querySelector('input[name="crop"]:checked');
+            let outputVariable = document.querySelector('input[name="outputVariable"]').value;
+            let folderOutput = document.querySelector('input[name="folderOutput"]').value;
+            options = {
+                fileName,
+                crop: crop ? true : false,
+                folderOutput,
+                outputVariable
+            }
+
+            if (crop) {
+                let startx = document.querySelector('input[name="stx"]').value;
+                let starty = document.querySelector('input[name="sty"]').value;
+                let endx = document.querySelector('input[name="enx"]').value;
+                let endy = document.querySelector('input[name="eny"]').value;
+
+                options = {
+                    ...options,
+                    startx,
+                    starty,
+                    endx,
+                    endy
+                }
+            }
+
+            window.electronAPI.sendScreenShotApp(options);
+
+        });
+
+        document.getElementById('transferService').addEventListener('click', () => {
+            const type = document.querySelector('input[name="transferService"]:checked').value;
+            const LocalFilePath = document.querySelector('input[name="local"]').value;
+            const RemoteFilePath = document.querySelector('input[name="remote"]').value;
+            window.electronAPI.sendTransferFileApp(type, LocalFilePath, RemoteFilePath);
+        });
+
+        document.getElementById('typeText').addEventListener('click', () => {
+
+            const selector = document.querySelector('input[name="selector"]').value;
+            const seconds = document.querySelector('input[name="seconds"]').value;
+            const text = document.querySelector('textarea[name="text"]').value;
+
+            window.electronAPI.sendTypeTextApp(selector, seconds, text);
+        });
+
+        document.getElementById('install').addEventListener('click', () => {
+            const apkPath = document.getElementById('file').value;
+            if (!apkPath) {
+                alert('Please select an APK file');
+                return;
+            }
+
+            if (apkPath.startsWith("\"") || apkPath.endsWith("\"")) {
+                alert('Please clear \" in the file path');
+                return;
+            }
+
+            console.log("Installing", apkPath);
+            window.electronAPI.sendInstallApp(apkPath);
+        });
+
+        window.electronAPI.onOpenAppReply((event, message) => {
+            document.getElementById('result').innerText = message;
+        });
+
+        document.getElementById('back').addEventListener('click', () => {
+            console.log('Pressing back...');
+            window.electronAPI.pressBack();
+        });
+
+        document.getElementById('home').addEventListener('click', () => {
+            console.log('Pressing home...');
+            window.electronAPI.pressHome();
+        });
+
+        document.getElementById('menu').addEventListener('click', () => {
+            console.log('Pressing menu...');
+            window.electronAPI.pressMenu();
+        });
+
+    </script>
+
+</body>
+
+</html>
