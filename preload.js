@@ -24,5 +24,6 @@ contextBridge.exposeInMainWorld('electronAPI', {
     onCloseScreenApp: () => ipcRenderer.invoke('stop-ws-scrcpy'),
 
     getDeviceList: () => ipcRenderer.invoke('get-device-list'),
-
+    manageDevice: () => ipcRenderer.invoke('manage-device'),
+    deleteDevice: (name) => ipcRenderer.send('delete-device', name),
 });

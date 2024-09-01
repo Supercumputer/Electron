@@ -12,7 +12,26 @@
 <body>
     <h1>Mở ứng dụng trên điện thoại qua ADB</h1>
 
+    <table class="table">
+        <thead>
+            <tr>
+                <th scope="col">#</th>
+                <th scope="col">Name</th>
+                <th scope="col">Status</th>
+                <th scope="col">Action</th>
+            </tr>
+        </thead>
+
+        <tbody id="deviceTable">
+
+
+        </tbody>
+    </table>
+
+    <button type="button" class="btn btn-outline-info" id="getDeviceList">Get DeviceList</button>
+
     <button type="button" class="btn btn-outline-info" id="listDevices">List Devices</button>
+
     <pre id="deviceList"></pre>
 
     <button id="start-scrcpy">Start ws-scrcpy</button>
@@ -289,6 +308,43 @@
     </div>
 
     <script>
+
+        document.getElementById('getDeviceList').addEventListener('click', () => {
+            window.electronAPI.manageDevice()
+                .then(devices => {
+                    const deviceTable = document.getElementById('deviceTable');
+
+                    let html = '';
+                    devices.forEach(device => {
+                        html += `<tr>
+                        <th scope="row">${device.dataValues.id}</th>
+                        <td>${device.dataValues.name}</td>
+                        <td>${device.dataValues.status}</td>
+                        <td><button class="btn btn-danger delete" name=${device.dataValues.name}>Delete</button></td>
+                    </tr>`
+                    })
+
+                    deviceTable.innerHTML = html
+
+                    document.querySelectorAll('.btn-danger.delete').forEach((btn) => {
+
+                        btn.addEventListener('click', () => {
+                            const deviceName = btn.getAttribute('name');
+
+                            const confirmed = confirm(`Are you sure you want to delete device: ${deviceName}?`);
+
+                            if (confirmed && deviceName) {
+                                window.electronAPI.deleteDevice(deviceName)
+                            }
+                        })
+                    })
+                })
+                .catch(err => {
+                    document.getElementById('deviceList').textContent = `Lỗi: ${err.message}`;
+                });
+        })
+
+
 
         document.getElementById('listDevices').addEventListener('click', () => {
             window.electronAPI.getDeviceList()

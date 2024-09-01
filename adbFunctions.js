@@ -4,7 +4,7 @@ const { DOMParser } = require('xmldom');
 const xpath = require('xpath');
 const path = require('path');
 const Jimp = require('jimp'); // Thêm import cho jimp
-
+const Device = require('./models/Device');
 const WebSocket = require('ws');
 
 let ws;
@@ -42,7 +42,7 @@ function connectWebSocket() {
 
         message = createBuffer(32, 1, getBufferData(JSON.stringify(data)));
         ws.send(message);
-
+        deviceManager()
     });
 
     // ws.on('message', function message(data) {
@@ -50,6 +50,10 @@ function connectWebSocket() {
     //     // data = JSON.parse(data);
     //     console.log('mess => ', data);
     // });
+
+    ws.on('close', function close() {
+        console.log('Connection closed');
+    });
 }
 function getChannelInitData(code) {
     const buffer = Buffer.alloc(4);
@@ -75,7 +79,6 @@ function sendMessageShell(message) {
     ws.send(data);
     ws.send([0x20, 0x01, 0x00, 0x00, 0x00, 0x0d, 0x0a]);
 }
-
 function startApp(event, packageName) {
 
     sendMessageShell(`monkey -p ${packageName} -c android.intent.category.LAUNCHER 1`)
@@ -253,7 +256,6 @@ function lockPhone(event) {
     //     event.reply('lock-phone-reply', `Phone locked successfully.`);
     // });
 }
-
 function unlockPhone(event) {
 
     sendMessageShell("input keyevent 82");
@@ -327,7 +329,6 @@ function deciceActions(event, action) {
 //         });
 //     });
 // }
-
 function toggleAirplaneMode(event) {
     // Gửi lệnh kiểm tra trạng thái chế độ máy bay qua WebSocket
     sendMessageShell('settings get global airplane_mode_on');
@@ -361,7 +362,6 @@ function toggleAirplaneMode(event) {
 
     });
 }
-
 // function toggleWifi(event) {
 //     const adbPath = `"C:/Users/MY ASUS/AppData/Local/Android/Sdk/platform-tools/adb.exe"`;
 
@@ -401,7 +401,6 @@ function toggleAirplaneMode(event) {
 //         });
 //     });
 // }
-
 function toggleWifi(event) {
     // Gửi lệnh kiểm tra trạng thái Wi-Fi qua WebSocket
     sendMessageShell('dumpsys wifi');
@@ -511,7 +510,6 @@ function toggleData(event) {
         }
     });
 }
-
 // function toggleLocation(event) {
 //     const adbPath = `"C:/Users/MY ASUS/AppData/Local/Android/Sdk/platform-tools/adb.exe"`;
 
@@ -546,7 +544,6 @@ function toggleData(event) {
 //         });
 //     });
 // }
-
 function toggleLocation(event) {
     // Gửi lệnh kiểm tra trạng thái Location qua WebSocket
     sendMessageShell('settings get secure location_mode');
@@ -580,7 +577,6 @@ function toggleLocation(event) {
         }
     });
 }
-
 function toggleService(event, service) {
     console.log(service);
 
@@ -1177,6 +1173,72 @@ function getDeviceList() {
     });
 }
 
+function deviceManager() {
+    ws.send([0x04, 0x02, 0x00, 0x00, 0x00, 0x47, 0x54, 0x52, 0x43])
+    ws.on('message', async function message(data) {
+        try {
+            data = data.toString().substring(5);
+            // Chuyển đổi dữ liệu nhận được từ WebSocket thành chuỗi và phân tích nó
+            const jsonData = JSON.parse(data);
+
+            if (jsonData.type === 'devicelist') {
+
+                const devices = jsonData.data.list;
+
+                // Lấy danh sách UDID của thiết bị mới
+                const deviceIds = devices.map(device => device.udid);
+
+                // Cập nhật hoặc thêm thiết bị vào cơ sở dữ liệu
+                for (const device of devices) {
+                    const { udid, state, ...rest } = device;
+                    await Device.upsert({
+                        name: udid, // Sử dụng `udid` làm `name` để đảm bảo tính duy nhất
+                        status: state === 'device' ? 'online' : 'offline', // Cập nhật trạng thái thiết bị
+                        ...rest, // Thêm các trường khác nếu cần thiết
+                        lastUpdate: new Date() // Cập nhật thời gian cuối cùng
+                    });
+                }
+
+                // Lấy danh sách thiết bị hiện tại từ cơ sở dữ liệu
+                const allDevices = await Device.findAll();
+                const currentDeviceIds = allDevices.map(device => device.name); // Sử dụng `name` vì `id` là UDID
+
+                // Xác định các thiết bị đã không còn trong danh sách mới
+                const offlineDevices = currentDeviceIds.filter(id => !deviceIds.includes(id));
+
+                // Cập nhật trạng thái của các thiết bị không còn trong danh sách mới
+                if (offlineDevices.length > 0) {
+                    await Device.update(
+                        { status: 'offline' },
+                        { where: { name: offlineDevices } } // Sử dụng `name` vì `id` là UDID
+                    );
+                }
+
+                console.log('Device list updated.');
+
+            }
+        } catch (error) {
+            console.error('Error processing device list:', error);
+        }
+    });
+}
+
+async function getDevices() {
+    try {
+        const devices = await Device.findAll();
+        return devices
+    } catch (error) {
+        console.error('Error retrieving device list:', error);
+        return [];
+    }
+}
+
+async function deleteDevices(event, name) {
+    console.log('Deleting device:', name);
+
+    await Device.destroy({ where: { name } });
+}
+
 module.exports = {
     startApp,
     closeApp,
@@ -1199,4 +1261,7 @@ module.exports = {
     stopScrcpy,
     getDeviceList,
     connectWebSocket,
+    deviceManager,
+    getDevices,
+    deleteDevices
 }       

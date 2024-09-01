@@ -1,4 +1,6 @@
 const { app, BrowserWindow, ipcMain } = require('electron')
+const path = require('node:path');
+const sequelize = require('./configs/database');
 
 const {
     startApp,
@@ -22,9 +24,10 @@ const {
     stopScrcpy,
     getDeviceList,
     connectWebSocket,
+    getDevices,
+    deleteDevices
 } = require('./adbFunctions');
 
-const path = require('node:path');
 let scrcpyWindow;
 const isDev = process.env.NODE_ENV !== 'development'
 
@@ -62,14 +65,25 @@ function createScrcpyWindow() {
     scrcpyWindow.loadURL('http://localhost:8000');
 }
 
+sequelize.sync().then(() => {
+    console.log("Database & tables created!");
+}).catch((error) => {
+    console.error("Unable to sync database:", error);
+});
+
 app.whenReady().then(() => {
     createWindow()
-    // startScrcpy()
     connectWebSocket()
 
     ipcMain.handle('pressBack', () => pressBack());
     ipcMain.handle('pressHome', () => pressHome());
     ipcMain.handle('pressMenu', () => pressMenu());
+    ipcMain.on('delete-device', (event, name) => deleteDevices(event, name));
+
+    ipcMain.handle('manage-device', async () => {
+        const data = await getDevices()
+        return data
+    });
 
     ipcMain.on('device-actions', (event, action) => deciceActions(event, action));
 
