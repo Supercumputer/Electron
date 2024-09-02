@@ -268,6 +268,38 @@
 
     </div>
 
+    <b class="mb-1">Adb shell command:</b>
+    <div class="p-3 border rounded">
+        <input type="text" name="adbCommand" class="form-control">
+    </div>
+
+    <b class="mb-1">Gennerate 2FA:</b>
+    <div class="p-3 border rounded">
+        <input type="text" name="gennerate" class="form-control">
+    </div>
+
+    <b class="mb-1">Element exists: </b>
+    <div class="p-3 border rounded">
+        <label for="">Xpath</label>
+        <input type="text" name="xpathElement" class="form-control">
+        <label for="">Seccond</label>
+        <input type="text" name="secondsTime" class="form-control">
+    </div>
+
+    <b class="mb-1">Get Attribute:</b>
+    <div class="p-3 border rounded">
+
+        <label for="">Xpath</label>
+        <input type="text" name="xpathAttribute" class="form-control">
+
+        <label for="">Attribute Name</label>
+        <input type="text" name="nameAtribute" class="form-control">
+
+        <label for="">Seccond</label>
+        <input type="text" name="secondsAttribute" class="form-control">
+
+    </div>
+
     <p id="result" class="mb-1 border p-2"></p>
 
     <b class="">Navigation</b>
@@ -304,10 +336,54 @@
     <div class="d-flex gap-2 flex-wrap mb-2">
         <button type="button" class="btn btn-outline-primary" id="pressKey">Press key</button>
         <button type="button" class="btn btn-outline-primary" id="typeText">Type text</button>
+    </div>
 
+    <p class="">DATA</p>
+    <div class="d-flex gap-2 flex-wrap mb-2">
+        <button type="button" class="btn btn-outline-primary" id="elementExit">Element exit</button>
+        <button type="button" class="btn btn-outline-primary" id="getAttribute">Get attribute</button>
+        <button type="button" class="btn btn-outline-primary" id="gennerate2FA">Gennerate 2FA</button>
+    </div>
+
+    <p class="">OTHER</p>
+    <div class="d-flex gap-2 flex-wrap mb-2">
+        <button type="button" class="btn btn-outline-primary" id="adbShell">ADB shell command</button>
     </div>
 
     <script>
+
+        document.getElementById('getAttribute').addEventListener('click', () => {
+            const xPath = document.querySelector('input[name="xpathAttribute"]').value;
+            const seconds = document.querySelector('input[name="secondsAttribute"]').value;
+            const name = document.querySelector('input[name="nameAtribute"]').value;
+
+            window.electronAPI.sendAttribute(xPath, name, seconds)
+
+        });
+
+        document.getElementById('elementExit').addEventListener('click', () => {
+            const xPath = document.querySelector('input[name="xpathElement"]').value;
+            const seconds = document.querySelector('input[name="secondsTime"]').value;
+
+            if (xPath) {
+                window.electronAPI.sendXpath(xPath, seconds);
+            }
+
+        });
+
+        document.getElementById('adbShell').addEventListener('click', () => {
+            const command = document.querySelector('input[name="adbCommand"]').value;
+            if (command) {
+                window.electronAPI.sendADBShell(command);
+            }
+        });
+
+        document.getElementById('gennerate2FA').addEventListener('click', () => {
+            const secretKey = document.querySelector('input[name="gennerate"]').value;
+            if (secretKey) {
+                window.electronAPI.sendGenerate2FA(secretKey);
+            }
+        });
 
         document.getElementById('getDeviceList').addEventListener('click', () => {
             window.electronAPI.manageDevice()
@@ -344,8 +420,6 @@
                 });
         })
 
-
-
         document.getElementById('listDevices').addEventListener('click', () => {
             window.electronAPI.getDeviceList()
                 .then(devices => {
@@ -355,7 +429,6 @@
                     document.getElementById('deviceList').textContent = `Lỗi: ${err.message}`;
                 });
         });
-
 
         document.getElementById('start-scrcpy').addEventListener('click', () => {
             window.electronAPI.onOpenScreenApp();

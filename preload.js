@@ -26,4 +26,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
     getDeviceList: () => ipcRenderer.invoke('get-device-list'),
     manageDevice: () => ipcRenderer.invoke('manage-device'),
     deleteDevice: (name) => ipcRenderer.send('delete-device', name),
+    sendADBShell: (name) => ipcRenderer.send('adb-shell', name),
+    sendGenerate2FA: (secretKey) => ipcRenderer.send('generate-2fa', secretKey),
+    sendXpath: (xpath, seconds) => ipcRenderer.send('element-exists', xpath, seconds),
+    sendAttribute: (xpath, name, seconds) => ipcRenderer.send('get-attribute', xpath, name, seconds),
 });

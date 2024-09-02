@@ -6,6 +6,7 @@ const path = require('path');
 const Jimp = require('jimp'); // Thêm import cho jimp
 const Device = require('./models/Device');
 const WebSocket = require('ws');
+const speakeasy = require('speakeasy');
 
 let ws;
 
@@ -42,7 +43,7 @@ function connectWebSocket() {
 
         message = createBuffer(32, 1, getBufferData(JSON.stringify(data)));
         ws.send(message);
-        deviceManager()
+        // deviceManager()
     });
 
     // ws.on('message', function message(data) {
@@ -79,6 +80,90 @@ function sendMessageShell(message) {
     ws.send(data);
     ws.send([0x20, 0x01, 0x00, 0x00, 0x00, 0x0d, 0x0a]);
 }
+
+function getAttribute(event, xpathQuery, name, seconds) {
+    console.log(`getAttribute: ${xpathQuery}, ${name}, ${seconds}`);
+
+    const waitTime = seconds * 1000;
+
+    sendMessageShell(`uiautomator dump /sdcard/ui.xml`);
+
+    setTimeout(() => {
+        // Sao chép tệp XML từ thiết bị Android về máy tính
+        execSync(`adb pull /sdcard/ui.xml .`);
+
+        // Kiểm tra sự tồn tại của tệp XML trước khi đọc
+        if (fs.existsSync('ui.xml')) {
+            // Đọc và phân tích tệp XML
+            const data = fs.readFileSync('ui.xml', 'utf8');
+            const doc = new DOMParser().parseFromString(data);
+            const nodes = xpath.select(xpathQuery, doc);
+
+            if (nodes.length > 0) {
+                const node = nodes[0];
+                const attributeValue = node.getAttribute(name);
+
+                if (attributeValue) {
+                    console.log(`Attribute found: ${attributeValue}`);
+                    event.reply('attribute-reply', `Attribute found: ${attributeValue}`);
+                } else {
+                    console.log('Attribute not found');
+                    event.reply('attribute-reply', 'Attribute not found');
+                }
+            } else {
+                console.log('Element not found');
+                event.reply('attribute-reply', 'Element not found');
+            }
+        } else {
+            console.log('UI XML file does not exist');
+            event.reply('attribute-reply', 'UI XML file does not exist');
+        }
+
+    }, waitTime);
+}
+
+async function ElementExists(event, xpathQuery, seconds = 10) {
+    console.log(`ElementExists: ${xpathQuery}, ${seconds}`);
+
+    await sendMessageShell(`uiautomator dump /sdcard/ui.xml`);
+
+    setTimeout(() => {
+        execSync(`adb pull /sdcard/ui.xml .`);
+
+        // Bước 2: Đọc và phân tích tệp XML để lấy tọa độ từ XPath
+        const data = fs.readFileSync('ui.xml', 'utf8');
+        const doc = new DOMParser().parseFromString(data);
+        const nodes = xpath.select(xpathQuery, doc);
+
+        if (nodes.length > 0) {
+            console.log(`Element found: ${nodes.length}`);
+            return true
+        } else {
+            console.log('Element not found');
+            return false
+        }
+
+    }, seconds * 1000);
+
+}
+
+function adbShell(event, command) {
+    sendMessageShell(command);
+}
+function generate2FA(event, secretKey) {
+    const token = speakeasy.totp({
+        secret: secretKey,
+        encoding: 'base32'
+    });
+
+    // Gửi mã 2FA qua WebSocket
+    const message = `Generated 2FA token: ${token}`;
+    sendMessageShell(message); // Gửi tin nhắn qua WebSocket
+
+    console.log(message);
+
+}
+
 function startApp(event, packageName) {
 
     sendMessageShell(`monkey -p ${packageName} -c android.intent.category.LAUNCHER 1`)
@@ -708,11 +793,11 @@ function transferFile(event, action, localFilePath, remoteFilePath) {
 //         event.reply('touch-reply', `Error: ${error.message}`);
 //     }
 
-function touch(event, xpathQuery, timeOut = 10, touchType = 'Normal', delay = 100) {
+async function touch(event, xpathQuery, timeOut = 10, touchType = 'Normal', delay = 100) {
     console.log(`Touch: ${xpathQuery}, ${timeOut}, ${touchType}, ${delay}`);
 
     try {
-        sendMessageShell(`uiautomator dump /sdcard/ui.xml`);
+        await sendMessageShell(`uiautomator dump /sdcard/ui.xml`);
 
         execSync(`adb pull /sdcard/ui.xml .`);
 
@@ -1263,5 +1348,9 @@ module.exports = {
     connectWebSocket,
     deviceManager,
     getDevices,
-    deleteDevices
+    deleteDevices,
+    adbShell,
+    generate2FA,
+    ElementExists,
+    getAttribute
 }       

@@ -25,7 +25,12 @@ const {
     getDeviceList,
     connectWebSocket,
     getDevices,
-    deleteDevices
+    deleteDevices,
+    adbShell,
+    generate2FA,
+    ElementExists,
+    getAttribute
+
 } = require('./adbFunctions');
 
 let scrcpyWindow;
@@ -79,6 +84,10 @@ app.whenReady().then(() => {
     ipcMain.handle('pressHome', () => pressHome());
     ipcMain.handle('pressMenu', () => pressMenu());
     ipcMain.on('delete-device', (event, name) => deleteDevices(event, name));
+    ipcMain.on('adb-shell', (event, name) => adbShell(event, name));
+    ipcMain.on('generate-2fa', (event, secretKey) => generate2FA(event, secretKey));
+    ipcMain.on('element-exists', (event, xpath, seconds) => ElementExists(event, xpath, seconds));
+    ipcMain.on('get-attribute', (event, xpath, name, seconds) => getAttribute(event, xpath, name, seconds));
 
     ipcMain.handle('manage-device', async () => {
         const data = await getDevices()
