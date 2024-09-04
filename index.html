@@ -352,6 +352,28 @@
 
     <script>
 
+        window.electronAPI.updateDeviceList((deviceList) => {
+            console.log(deviceList);
+            updateDeviceUI(deviceList);
+        });
+
+        function updateDeviceUI(deviceList) {
+            const deviceListElement = document.getElementById('deviceTable');
+            deviceListElement.innerHTML = ''; // Xóa nội dung hiện tại
+
+            let html = '';
+            deviceList.forEach(device => {
+                html += `<tr>
+                        <th scope="row">${device.dataValues.id}</th>
+                        <td>${device.dataValues.name}</td>
+                        <td>${device.dataValues.status}</td>
+                        <td><button class="btn btn-danger delete" name=${device.dataValues.name}>Delete</button></td>
+                    </tr>`
+            })
+
+            deviceListElement.innerHTML = html
+        }
+
         document.getElementById('getAttribute').addEventListener('click', () => {
             const xPath = document.querySelector('input[name="xpathAttribute"]').value;
             const seconds = document.querySelector('input[name="secondsAttribute"]').value;

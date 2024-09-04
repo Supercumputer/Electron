@@ -30,4 +30,5 @@ contextBridge.exposeInMainWorld('electronAPI', {
     sendGenerate2FA: (secretKey) => ipcRenderer.send('generate-2fa', secretKey),
     sendXpath: (xpath, seconds) => ipcRenderer.send('element-exists', xpath, seconds),
     sendAttribute: (xpath, name, seconds) => ipcRenderer.send('get-attribute', xpath, name, seconds),
+    updateDeviceList: (cb) => ipcRenderer.on('update-device-list', (event, data) => cb(data)),
 });

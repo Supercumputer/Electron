@@ -10,7 +10,7 @@ const speakeasy = require('speakeasy');
 
 let ws;
 
-function connectWebSocket() {
+function connectWebSocket(win) {
 
     ws = new WebSocket('ws://localhost:8000/?action=multiplex');
     const ChannelCode = {
@@ -43,7 +43,7 @@ function connectWebSocket() {
 
         message = createBuffer(32, 1, getBufferData(JSON.stringify(data)));
         ws.send(message);
-        // deviceManager()
+        deviceManager(win)
     });
 
     // ws.on('message', function message(data) {
@@ -1140,65 +1140,62 @@ function pressKey(event, keyCode) {
 //         event.reply('type-text-reply', `Error: ${error.message}`);
 //     }
 // }
-function typeText(event, selector, seconds = 10, text) {
+async function typeText(event, selector, seconds = 10, text) {
     console.log(`Selector: ${selector}, Duration: ${seconds}, Text: ${text}`);
 
-    try {
-        // Bước 1: Trích xuất giao diện hiện tại và lưu vào tệp XML
-        console.log('Running uiautomator dump...');
-        sendMessageShell('uiautomator dump /sdcard/ui.xml');
+    await sendMessageShell('uiautomator dump /sdcard/ui.xml');
 
+    setTimeout(async () => {
         console.log('Pulling ui.xml...');
         execSync(`adb pull /sdcard/ui.xml .`);
 
-        // Bước 2: Đọc và phân tích tệp XML để lấy tọa độ của trường nhập liệu
-        const data = fs.readFileSync('ui.xml', 'utf8');
-        const doc = new DOMParser().parseFromString(data, 'text/xml');
-        const nodes = xpath.select(selector, doc);
+        if (fs.existsSync('ui.xml')) {
 
-        if (nodes.length > 0) {
-            const node = nodes[0];
-            const boundsAttr = node.getAttribute('bounds');
+            const data = fs.readFileSync('ui.xml', 'utf8');
+            const doc = new DOMParser().parseFromString(data, 'text/xml');
+            const nodes = xpath.select(selector, doc);
 
-            if (!boundsAttr) {
-                event.reply('type-text-reply', 'No bounds attribute found for the element');
-                return;
+            // // Bước 2: Đọc và phân tích tệp XML để lấy tọa độ của trường nhập liệu
+            // const data = fs.readFileSync('ui.xml', 'utf8');
+            // const doc = new DOMParser().parseFromString(data, 'text/xml');
+            // const nodes = xpath.select(selector, doc);
+
+            if (nodes.length > 0) {
+                const node = nodes[0];
+                const boundsAttr = node.getAttribute('bounds');
+
+                if (!boundsAttr) {
+                    event.reply('type-text-reply', 'No bounds attribute found for the element');
+                    return;
+                }
+
+                const boundsRegex = /\[(\d+),(\d+)\]\[(\d+),(\d+)\]/;
+                const match = boundsAttr.match(boundsRegex);
+
+                if (match) {
+                    const [left, top, right, bottom] = match.slice(1).map(Number);
+                    const x = Math.floor((left + right) / 2);
+                    const y = Math.floor((top + bottom) / 2);
+
+                    // Bước 3: Nhấp vào trường để chọn nó
+                    console.log(`Tapping on (${x}, ${y})...`);
+                    await sendMessageShell(`input tap ${x} ${y}`);
+
+                    // Bước 4: Nhập văn bản vào trường
+                    const escapedText = text.replace(/ /g, '%s'); // Escape space characters
+                    const typeCommand = `input text "${escapedText}"`;
+
+                    console.log(`Executing command: ${typeCommand}`);
+                    await sendMessageShell(typeCommand);
+
+                } else {
+                    event.reply('type-text-reply', 'Bounds attribute format is incorrect');
+                }
             }
-
-            const boundsRegex = /\[(\d+),(\d+)\]\[(\d+),(\d+)\]/;
-            const match = boundsAttr.match(boundsRegex);
-
-            if (match) {
-                const [left, top, right, bottom] = match.slice(1).map(Number);
-                const x = Math.floor((left + right) / 2);
-                const y = Math.floor((top + bottom) / 2);
-
-                // Bước 3: Nhấp vào trường để chọn nó
-                console.log(`Tapping on (${x}, ${y})...`);
-                sendMessageShell(`input tap ${x} ${y}`);
-
-                // Bước 4: Nhập văn bản vào trường
-                const escapedText = text.replace(/ /g, '%s'); // Escape space characters
-                const typeCommand = `input text "${escapedText}"`;
-
-                console.log(`Executing command: ${typeCommand}`);
-                sendMessageShell(typeCommand);
-
-                // Đợi trong một khoảng thời gian để đảm bảo văn bản đã được nhập
-                console.log(`Waiting for ${seconds} seconds...`);
-                setTimeout(() => {
-                    event.reply('type-text-reply', `Text typed successfully into field at (${x}, ${y})`);
-                }, seconds * 1000);
-            } else {
-                event.reply('type-text-reply', 'Bounds attribute format is incorrect');
-            }
-        } else {
-            event.reply('type-text-reply', 'No element found for the XPath query');
         }
-    } catch (error) {
-        console.error(`Error: ${error.message}`);
-        event.reply('type-text-reply', `Error: ${error.message}`);
-    }
+    }, seconds * 1000);
+
+
 }
 
 let scrcpyProcess = null;
@@ -1258,9 +1255,11 @@ function getDeviceList() {
     });
 }
 
-function deviceManager() {
+function deviceManager(win) {
     ws.send([0x04, 0x02, 0x00, 0x00, 0x00, 0x47, 0x54, 0x52, 0x43])
+
     ws.on('message', async function message(data) {
+
         try {
             data = data.toString().substring(5);
             // Chuyển đổi dữ liệu nhận được từ WebSocket thành chuỗi và phân tích nó
@@ -1300,6 +1299,17 @@ function deviceManager() {
                 }
 
                 console.log('Device list updated.');
+
+                let deviceList = await getDevices();
+
+                console.log("deviceList =>", deviceList);
+
+                console.log("mainWindow =>", win);
+
+                if (win) {
+                    console.log('Updating device list in main window...');
+                    win.webContents.send('update-device-list', deviceList);
+                }
 
             }
         } catch (error) {

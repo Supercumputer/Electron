@@ -34,10 +34,11 @@ const {
 } = require('./adbFunctions');
 
 let scrcpyWindow;
+let win;
 const isDev = process.env.NODE_ENV !== 'development'
 
 function createWindow() {
-    const win = new BrowserWindow({
+    win = new BrowserWindow({
         width: 800,
         height: 600,
         webPreferences: {
@@ -78,7 +79,7 @@ sequelize.sync().then(() => {
 
 app.whenReady().then(() => {
     createWindow()
-    connectWebSocket()
+    connectWebSocket(win)
 
     ipcMain.handle('pressBack', () => pressBack());
     ipcMain.handle('pressHome', () => pressHome());
